@@ -10,7 +10,7 @@
     </style>
 </head>
 <body>
-    <h1>Roblox Video Converter (64x64)</h1>
+    <h1>Roblox Video Converter (128x128)</h1>
     <div class="box">
         <input type="file" id="upload" accept="video/mp4,video/webm">
         <button type="button" onclick="process()">Convert to 8192 Pixels</button>
@@ -19,7 +19,7 @@
     <div id="status">Ready</div>
     <textarea id="out" placeholder="Data will appear here..."></textarea>
     
-    <canvas id="c" width="8192" height="8192" style="display:none"></canvas>
+    <canvas id="c" width="16384" height="16384" style="display:none"></canvas>
     <video id="v" style="display:none"></video>
 
     <script>
