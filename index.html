@@ -44,21 +44,29 @@
 
             // Step 0.2 means 5 frames per second. 
             // Increase to 0.5 if the output text is too long for Roblox.
-            for(let t=0; t < duration; t += 0.2) {
-                v.currentTime = t;
-                await new Promise(res => v.onseeked = res);
-                
-                ctx.drawImage(v, 0, 0, res, res);
-                const data = ctx.getImageData(0, 0, res, res).data;
-                
-                let frameString = "";
-                for(let i=0; i < data.length; i += 4) {
-                    const r = data[i].toString(16).padStart(2, '0');
-                    const g = data[i+1].toString(16).padStart(2, '0');
-                    const b = data[i+2].toString(16).padStart(2, '0');
-                    frameString += r + g + b;
-                }
-                allFrames.push(frameString);
+for(let t=0; t < duration; t += 0.2) {
+    v.currentTime = t;
+    await new Promise(res => v.onseeked = res);
+    
+    ctx.drawImage(v, 0, 0, res, res);
+    const data = ctx.getImageData(0, 0, res, res).data;
+    
+    let frameString = "";
+    for(let i=0; i < data.length; i += 4) {
+        const r = data[i].toString(16).padStart(2, '0');
+        const g = data[i+1].toString(16).padStart(2, '0');
+        const b = data[i+2].toString(16).padStart(2, '0');
+        
+        const hex = r + g + b;
+        
+        // COMPRESSION: If black, use a dot. Otherwise, use the 6-char hex.
+        if (hex === "000000") {
+            frameString += ".";
+        } else {
+            frameString += hex;
+        }
+    }
+    allFrames.push(frameString);
                 
                 status.innerText = `Processing: ${Math.floor((t/duration)*100)}% (${allFrames.length} frames)`;
             }
