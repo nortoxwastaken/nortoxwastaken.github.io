@@ -1,3 +1,75 @@
-<h1>Video</h1>
-<youtube src="https://raw.githubusercontent.com/nortoxwastaken/nortoxwastaken.github.io/main/frames.txt">
-<p>This video is playing at 5 FPS using Base64 frames from GitHub.</p>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>16x16 Hex Converter</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: #eee; padding: 20px; text-align: center; }
+        #out { width: 100%; height: 300px; background: #000; color: #0f0; font-family: monospace; }
+        #status { color: #f1c40f; margin: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <input type="file" id="upload" accept="video/mp4">
+    <button type="button" onclick="process()">Convert to Hex Pixels</button>
+    
+    <div id="status">Ready</div>
+    <textarea id="out" placeholder="Data will appear here..."></textarea>
+    
+    <canvas id="c" width="16" height="16" style="display:none"></canvas>
+    <video id="v" style="display:none"></video>
+
+    <script>
+        async function process() {
+            const v = document.getElementById('v');
+            const c = document.getElementById('c');
+            const out = document.getElementById('out');
+            const status = document.getElementById('status');
+            const file = document.getElementById('upload').files[0];
+
+            if (!file) {
+                alert("Please select a video file first!");
+                return;
+            }
+
+            // FIX: added willReadFrequently to stop the warning and improve speed
+            const ctx = c.getContext('2d', { willReadFrequently: true });
+            
+            v.src = URL.createObjectURL(file);
+            status.innerText = "Loading video...";
+
+            // Wait for video metadata to load
+            await new Promise(res => v.onloadedmetadata = res);
+            
+            let allFrames = [];
+            const duration = v.duration;
+
+            for(let t=0; t < duration; t += 0.2) {
+                v.currentTime = t;
+                // Wait for the seek to actually finish
+                await new Promise(res => v.onseeked = res);
+                
+                ctx.drawImage(v, 0, 0, 16, 16);
+                const data = ctx.getImageData(0,0,16,16).data;
+                
+                let frameString = "";
+                for(let i=0; i < data.length; i += 4) {
+                    const r = data[i].toString(16).padStart(2, '0');
+                    const g = data[i+1].toString(16).padStart(2, '0');
+                    const b = data[i+2].toString(16).padStart(2, '0');
+                    frameString += r + g + b;
+                }
+                allFrames.push(frameString);
+                
+                // Update status so you know it hasn't crashed
+                if (Math.floor(t * 10) % 5 === 0) {
+                    status.innerText = `Processing: ${Math.floor((t/duration)*100)}%`;
+                }
+            }
+
+            out.value = allFrames.join("|");
+            status.innerText = "Done! Copy the text above.";
+            console.log("Conversion Finished. Frames:", allFrames.length);
+        }
+    </script>
+</body>
+</html>
