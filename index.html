@@ -13,13 +13,13 @@
     <h1>Roblox Video Converter (64x64)</h1>
     <div class="box">
         <input type="file" id="upload" accept="video/mp4,video/webm">
-        <button type="button" onclick="process()">Convert to 4096 Pixels</button>
+        <button type="button" onclick="process()">Convert to 8192 Pixels</button>
     </div>
     
     <div id="status">Ready</div>
     <textarea id="out" placeholder="Data will appear here..."></textarea>
     
-    <canvas id="c" width="64" height="64" style="display:none"></canvas>
+    <canvas id="c" width="8192" height="8192" style="display:none"></canvas>
     <video id="v" style="display:none"></video>
 
     <script>
@@ -40,7 +40,7 @@
             
             let allFrames = [];
             const duration = v.duration;
-            const res = 64; // Hardcoded resolution
+            const res = 128; // Hardcoded resolution
 
             // Step 0.2 means 5 frames per second. 
             // Increase to 0.5 if the output text is too long for Roblox.
