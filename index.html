@@ -19,7 +19,7 @@
     <div id="status">Ready</div>
     <textarea id="out" placeholder="Data will appear here..."></textarea>
     
-    <canvas id="c" width="16384" height="16384" style="display:none"></canvas>
+    <canvas id="c" width="9126" height="9126" style="display:none"></canvas>
     <video id="v" style="display:none"></video>
 
     <script>
@@ -40,7 +40,7 @@
             
             let allFrames = [];
             const duration = v.duration;
-            const res = 128; // Hardcoded resolution
+            const res = 96; // Hardcoded resolution
 
             // Step 0.2 means 5 frames per second. 
             // Increase to 0.5 if the output text is too long for Roblox.
