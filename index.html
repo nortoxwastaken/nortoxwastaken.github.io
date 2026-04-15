@@ -61,7 +61,7 @@
                 return compressed.join(",");
             }
 
-            for(let t=0; t < duration; t += 0.2) {
+            for(let t=0; t < duration; t += 0.1) {
                 v.currentTime = t;
                 await new Promise(res => v.onseeked = res);
                 
