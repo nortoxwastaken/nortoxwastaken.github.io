@@ -1,25 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Hex Converter</title>
+    <title>Hex Converter - Optimized</title>
     <style>
         body { font-family: sans-serif; background: #121212; color: #eee; padding: 20px; text-align: center; }
-        #out { width: 100%; height: 300px; background: #000; color: #0f0; font-family: monospace; border: 1px solid #444; }
+        #out { width: 100%; height: 300px; background: #000; color: #0f0; font-family: monospace; border: 1px solid #444; margin-top: 10px; }
         #status { color: #f1c40f; margin: 10px; font-weight: bold; font-size: 1.2em; }
         .box { background: #222; padding: 20px; border-radius: 10px; display: inline-block; }
     </style>
 </head>
 <body>
-    <h1>Roblox Video Converter (96x96)</h1>
+    <h1>Roblox Video Converter (RLE Optimized)</h1>
     <div class="box">
         <input type="file" id="upload" accept="video/mp4,video/webm">
-        <button type="button" onclick="process()">Convert to 8192 Pixels</button>
+        <button type="button" onclick="process()">Convert & Compress</button>
     </div>
     
     <div id="status">Ready</div>
     <textarea id="out" placeholder="Data will appear here..."></textarea>
     
-    <canvas id="c" width="9126" height="9126" style="display:none"></canvas>
+    <canvas id="c" width="96" height="96" style="display:none"></canvas>
     <video id="v" style="display:none"></video>
 
     <script>
@@ -40,38 +40,48 @@
             
             let allFrames = [];
             const duration = v.duration;
-            const res = 96; // Hardcoded resolution
+            const res = 96;
 
-            // Step 0.2 means 5 frames per second. 
-            // Increase to 0.5 if the output text is too long for Roblox.
-for(let t=0; t < duration; t += 0.2) {
-    v.currentTime = t;
-    await new Promise(res => v.onseeked = res);
-    
-    ctx.drawImage(v, 0, 0, res, res);
-    const data = ctx.getImageData(0, 0, res, res).data;
-    
-    let frameString = "";
-    for(let i=0; i < data.length; i += 4) {
-        const r = data[i].toString(16).padStart(2, '0');
-        const g = data[i+1].toString(16).padStart(2, '0');
-        const b = data[i+2].toString(16).padStart(2, '0');
-        
-        const hex = r + g + b;
-        
-        // COMPRESSION: If black, use a dot. Otherwise, use the 6-char hex.
-        if (hex === "000000") {
-            frameString += ".";
-        } else {
-            frameString += hex;
-        }
-    }
-    allFrames.push(frameString);
+            function compressFrame(pixels) {
+                let compressed = [];
+                let runColor = pixels[0];
+                let runCount = 0;
+
+                for (let i = 0; i <= pixels.length; i++) {
+                    if (i < pixels.length && pixels[i] === runColor) {
+                        runCount++;
+                    } else {
+                        compressed.push(`${runCount}#${runColor}`);
+                        if (i < pixels.length) {
+                            runColor = pixels[i];
+                            runCount = 1;
+                        }
+                    }
+                }
+                return compressed.join(",");
+            }
+
+            for(let t=0; t < duration; t += 0.2) {
+                v.currentTime = t;
+                await new Promise(res => v.onseeked = res);
                 
+                ctx.drawImage(v, 0, 0, res, res);
+                const data = ctx.getImageData(0, 0, res, res).data;
+                
+                let pixelArray = [];
+                for(let i=0; i < data.length; i += 4) {
+                    const r = data[i].toString(16).padStart(2, '0');
+                    const g = data[i+1].toString(16).padStart(2, '0');
+                    const b = data[i+2].toString(16).padStart(2, '0');
+                    const hex = r + g + b;
+                    pixelArray.push(hex === "000000" ? "." : hex);
+                }
+                
+                allFrames.push(compressFrame(pixelArray));
                 status.innerText = `Processing: ${Math.floor((t/duration)*100)}% (${allFrames.length} frames)`;
             }
 
-            out.value = allFrames.join("|");
+            out.value = "PX:" + allFrames.join("|");
             status.innerText = "Done! Copy the text above.";
         }
     </script>
