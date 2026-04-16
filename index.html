@@ -7,6 +7,8 @@
         #out { width: 100%; height: 300px; background: #000; color: #0f0; font-family: monospace; border: 1px solid #444; margin-top: 10px; }
         #status { color: #f1c40f; margin: 10px; font-weight: bold; font-size: 1.2em; }
         .box { background: #222; padding: 20px; border-radius: 10px; display: inline-block; }
+        /* Style for the copy feedback */
+        #copy-notice { color: #2ecc71; font-weight: bold; display: none; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -17,6 +19,7 @@
     </div>
     
     <div id="status">Ready</div>
+    <div id="copy-notice">Result copied to clipboard!</div>
     <textarea id="out" placeholder="Data will appear here..."></textarea>
     
     <canvas id="c" width="96" height="96" style="display:none"></canvas>
@@ -28,10 +31,12 @@
             const c = document.getElementById('c');
             const out = document.getElementById('out');
             const status = document.getElementById('status');
+            const copyNotice = document.getElementById('copy-notice');
             const file = document.getElementById('upload').files[0];
 
             if (!file) return alert("Please select a video file!");
 
+            copyNotice.style.display = "none"; // Hide notice for new process
             const ctx = c.getContext('2d', { willReadFrequently: true });
             v.src = URL.createObjectURL(file);
             status.innerText = "Loading video...";
@@ -81,8 +86,19 @@
                 status.innerText = `Processing: ${Math.floor((t/duration)*100)}% (${allFrames.length} frames)`;
             }
 
-            out.value = "PX:" + allFrames.join("|");
-            status.innerText = "Done! Copy the text above.";
+            const result = "PX:" + allFrames.join("|");
+            out.value = result;
+            status.innerText = "Done!";
+
+            // --- AUTO COPY LOGIC ---
+            try {
+                await navigator.clipboard.writeText(result);
+                copyNotice.style.display = "block";
+                setTimeout(() => { copyNotice.style.display = "none"; }, 5000);
+            } catch (err) {
+                console.error("Failed to copy: ", err);
+                status.innerText = "Done! (Auto-copy failed, please copy manually)";
+            }
         }
     </script>
 </body>
