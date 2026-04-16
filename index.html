@@ -1,21 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Hex Converter - Optimized</title>
+    <title>Hex Converter - Low Memory</title>
     <style>
         body { font-family: sans-serif; background: #121212; color: #eee; padding: 20px; text-align: center; }
         #out { width: 100%; height: 300px; background: #000; color: #0f0; font-family: monospace; border: 1px solid #444; margin-top: 10px; }
         #status { color: #f1c40f; margin: 10px; font-weight: bold; font-size: 1.2em; }
         .box { background: #222; padding: 20px; border-radius: 10px; display: inline-block; }
-        /* Style for the copy feedback */
         #copy-notice { color: #2ecc71; font-weight: bold; display: none; margin-top: 5px; }
     </style>
 </head>
 <body>
-    <h1>Roblox Video Converter (RLE Optimized)</h1>
+    <h1>Roblox Video Converter (Low Memory Version)</h1>
     <div class="box">
         <input type="file" id="upload" accept="video/mp4,video/webm">
-        <button type="button" onclick="process()">Convert & Compress</button>
+        <button type="button" onclick="process()">Convert & Stream</button>
     </div>
     
     <div id="status">Ready</div>
@@ -36,14 +35,14 @@
 
             if (!file) return alert("Please select a video file!");
 
-            copyNotice.style.display = "none"; // Hide notice for new process
+            out.value = "PX:"; // Start the string
+            copyNotice.style.display = "none";
             const ctx = c.getContext('2d', { willReadFrequently: true });
             v.src = URL.createObjectURL(file);
-            status.innerText = "Loading video...";
+            status.innerText = "Initializing Stream...";
 
             await new Promise(res => v.onloadedmetadata = res);
             
-            let allFrames = [];
             const duration = v.duration;
             const res = 96;
 
@@ -51,7 +50,6 @@
                 let compressed = [];
                 let runColor = pixels[0];
                 let runCount = 0;
-
                 for (let i = 0; i <= pixels.length; i++) {
                     if (i < pixels.length && pixels[i] === runColor) {
                         runCount++;
@@ -82,22 +80,23 @@
                     pixelArray.push(hex === "000000" ? "." : hex);
                 }
                 
-                allFrames.push(compressFrame(pixelArray));
-                status.innerText = `Processing: ${Math.floor((t/duration)*100)}% (${allFrames.length} frames)`;
+                // Append directly to the textarea instead of an array
+                const frameData = compressFrame(pixelArray);
+                out.value += (t === 0 ? "" : "|") + frameData;
+                
+                status.innerText = `Streaming: ${Math.floor((t/duration)*100)}%`;
+                
+                // Force a small break to let the browser clear garbage collection
+                if (Math.floor(t * 10) % 50 === 0) await new Promise(r => setTimeout(r, 10));
             }
 
-            const result = "PX:" + allFrames.join("|");
-            out.value = result;
             status.innerText = "Done!";
 
-            // --- AUTO COPY LOGIC ---
             try {
-                await navigator.clipboard.writeText(result);
+                await navigator.clipboard.writeText(out.value);
                 copyNotice.style.display = "block";
-                setTimeout(() => { copyNotice.style.display = "none"; }, 5000);
             } catch (err) {
-                console.error("Failed to copy: ", err);
-                status.innerText = "Done! (Auto-copy failed, please copy manually)";
+                status.innerText = "Done! (Manual copy required)";
             }
         }
     </script>
