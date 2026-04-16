@@ -1,25 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Hex Converter - Low Memory</title>
+    <title>Hex Converter - High Speed</title>
     <style>
         body { font-family: sans-serif; background: #121212; color: #eee; padding: 20px; text-align: center; }
         #out { width: 100%; height: 300px; background: #000; color: #0f0; font-family: monospace; border: 1px solid #444; margin-top: 10px; }
         #status { color: #f1c40f; margin: 10px; font-weight: bold; font-size: 1.2em; }
         .box { background: #222; padding: 20px; border-radius: 10px; display: inline-block; }
         #copy-notice { color: #2ecc71; font-weight: bold; display: none; margin-top: 5px; }
+        progress { width: 80%; height: 20px; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <h1>Roblox Video Converter (Low Memory Version)</h1>
+    <h1>Roblox Video Converter (High Speed)</h1>
     <div class="box">
         <input type="file" id="upload" accept="video/mp4,video/webm">
-        <button type="button" onclick="process()">Convert & Stream</button>
+        <button type="button" onclick="process()">Convert & Fast-Copy</button>
     </div>
     
     <div id="status">Ready</div>
+    <progress id="pbar" value="0" max="100"></progress>
     <div id="copy-notice">Result copied to clipboard!</div>
-    <textarea id="out" placeholder="Data will appear here..."></textarea>
+    <textarea id="out" placeholder="Data will appear here once finished..."></textarea>
     
     <canvas id="c" width="96" height="96" style="display:none"></canvas>
     <video id="v" style="display:none"></video>
@@ -30,21 +32,23 @@
             const c = document.getElementById('c');
             const out = document.getElementById('out');
             const status = document.getElementById('status');
+            const pbar = document.getElementById('pbar');
             const copyNotice = document.getElementById('copy-notice');
             const file = document.getElementById('upload').files[0];
 
             if (!file) return alert("Please select a video file!");
 
-            out.value = "PX:"; // Start the string
+            out.value = ""; 
             copyNotice.style.display = "none";
-            const ctx = c.getContext('2d', { willReadFrequently: true });
+            const ctx = c.getContext('2d', { alpha: false, willReadFrequently: true });
             v.src = URL.createObjectURL(file);
-            status.innerText = "Initializing Stream...";
+            status.innerText = "Initializing...";
 
             await new Promise(res => v.onloadedmetadata = res);
             
             const duration = v.duration;
             const res = 96;
+            let allFrames = [];
 
             function compressFrame(pixels) {
                 let compressed = [];
@@ -64,39 +68,47 @@
                 return compressed.join(",");
             }
 
+            // Processing loop
             for(let t=0; t < duration; t += 0.1) {
                 v.currentTime = t;
                 await new Promise(res => v.onseeked = res);
                 
                 ctx.drawImage(v, 0, 0, res, res);
-                const data = ctx.getImageData(0, 0, res, res).data;
+                const imageData = ctx.getImageData(0, 0, res, res).data;
                 
                 let pixelArray = [];
-                for(let i=0; i < data.length; i += 4) {
-                    const r = data[i].toString(16).padStart(2, '0');
-                    const g = data[i+1].toString(16).padStart(2, '0');
-                    const b = data[i+2].toString(16).padStart(2, '0');
+                for(let i=0; i < imageData.length; i += 4) {
+                    const r = imageData[i].toString(16).padStart(2, '0');
+                    const g = imageData[i+1].toString(16).padStart(2, '0');
+                    const b = imageData[i+2].toString(16).padStart(2, '0');
                     const hex = r + g + b;
                     pixelArray.push(hex === "000000" ? "." : hex);
                 }
                 
-                // Append directly to the textarea instead of an array
-                const frameData = compressFrame(pixelArray);
-                out.value += (t === 0 ? "" : "|") + frameData;
+                allFrames.push(compressFrame(pixelArray));
                 
-                status.innerText = `Streaming: ${Math.floor((t/duration)*100)}%`;
-                
-                // Force a small break to let the browser clear garbage collection
-                if (Math.floor(t * 10) % 50 === 0) await new Promise(r => setTimeout(r, 10));
+                // Update UI only every 10 frames to keep it fast
+                if (allFrames.length % 10 === 0) {
+                    const pct = Math.floor((t/duration)*100);
+                    status.innerText = `Processing: ${pct}%`;
+                    pbar.value = pct;
+                    // Minimal delay to keep browser responsive
+                    await new Promise(r => setTimeout(r, 0)); 
+                }
             }
 
-            status.innerText = "Done!";
+            status.innerText = "Finishing and Copying...";
+            const finalResult = "PX:" + allFrames.join("|");
+            
+            // Only update the textbox ONCE at the very end
+            out.value = finalResult;
 
             try {
-                await navigator.clipboard.writeText(out.value);
+                await navigator.clipboard.writeText(finalResult);
                 copyNotice.style.display = "block";
+                status.innerText = "Done!";
             } catch (err) {
-                status.innerText = "Done! (Manual copy required)";
+                status.innerText = "Done! (Clipboard blocked, copy manually)";
             }
         }
     </script>
